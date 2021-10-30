@@ -17,14 +17,21 @@ namespace MailingListNet.Controllers
         {
             ViewBag.Title = "Mailling List";
 
-            HttpClient client = new HttpClient();
-
             PersonVM[] list = null;
-            string path = "https://localhost:44377/api/mailingList";
-            HttpResponseMessage response = await client.GetAsync(path);
-            if (response.IsSuccessStatusCode)
+
+            using (var client = new HttpClient())
             {
-                list = await response.Content.ReadAsAsync<PersonVM[]>();
+                client.BaseAddress = new Uri(GetBaseUri() + "api/mailingList");
+                HttpResponseMessage response = await client.GetAsync("mailingList");
+                if (response.IsSuccessStatusCode)
+                {
+                    list = await response.Content.ReadAsAsync<PersonVM[]>();
+                }
+            }
+
+            if (list == null)
+            {
+                list = new PersonVM[0];
             }
 
             return View(list);
@@ -39,7 +46,7 @@ namespace MailingListNet.Controllers
 
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri("https://localhost:44377/api/mailingList");
+                client.BaseAddress = new Uri(GetBaseUri() + "api/mailingList");
 
                 HttpResponseMessage response = await client.GetAsync(string.Format("mailingList?lastName={0}&asc={1}", filter.LastName, filter.Asc));
 
@@ -51,16 +58,6 @@ namespace MailingListNet.Controllers
                 {
                     list = new PersonVM[0];
                 }
-                //var result = await client.PostAsJsonAsync<FilterVM>("mailingList/filter", filter);
-
-                //if (result.IsSuccessStatusCode)
-                //{
-                //    list = await result.Content.ReadAsAsync<PersonVM[]>();
-                //}
-                //else
-                //{
-                //    list = new PersonVM[0];
-                //}
 
                 return View("Index", list);
             }
@@ -97,6 +94,11 @@ namespace MailingListNet.Controllers
             ModelState.AddModelError(string.Empty, "Server Error. Please contact administrator.");
 
             return View();
+        }
+
+        private string GetBaseUri()
+        {
+            return Request.Url.Scheme + "://" + Request.Url.Host + ":" + Request.Url.Port + Url.Content("~");
         }
     }
 }
